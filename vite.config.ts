@@ -1,7 +1,64 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig, type Plugin } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import path from "node:path";
+import { CodeInspectorPlugin } from "code-inspector-plugin";
+
+function normalizeBase(raw: string | undefined): string {
+  if (!raw || raw === "/") return "/";
+  return raw.endsWith("/") ? raw : `${raw}/`;
+}
+
+function defineAppConfig() {
+  return {
+    SERVER_API: "http://localhost:3000",
+    resultUrl:
+      "https://winrobot-pub-a-cos.yingdao.com/static/report-upload/1778566396051-958fe8f5-d38a-447d-9ea2-9e21ba5f85e7.json",
+    DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY || "",
+  };
+}
+
+/** 仅本地 dev（vite serve）时在 HTML 最前注入，先于应用脚本执行 */
+function injectRouterAppConfigDev(): Plugin {
+  return {
+    name: "inject-router-app-config-dev",
+    transformIndexHtml(html, ctx) {
+      if (!ctx.server) {
+        return html;
+      }
+      return html.replace(
+        /<head(\s[^>]*)?>/i,
+        `<head$1><script>window.__ROUTER_APP_CONFIG__=${JSON.stringify(
+          defineAppConfig(),
+        )}</script>`,
+      );
+    },
+  };
+}
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
-})
+  base: normalizeBase(process.env.VITE_BASE_URL),
+  plugins: [
+    injectRouterAppConfigDev(),
+    react(),
+    tailwindcss(),
+    CodeInspectorPlugin({
+      bundler: "vite",
+      editor: "code",
+    }),
+  ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  server: {
+    headers: {
+      "Cross-Origin-Embedder-Policy": "require-corp",
+      "Cross-Origin-Opener-Policy": "same-origin",
+    },
+    host: "0.0.0.0",
+    port: 8000,
+  },
+});
