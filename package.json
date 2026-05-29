@@ -10,9 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lightfish/react-model": "^0.0.1",
+    "@lightfish/router": "^0.0.1",
     "@tailwindcss/vite": "^4.3.0",
+    "ahooks": "^3.9.7",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-router-dom": "6.21.1",
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
