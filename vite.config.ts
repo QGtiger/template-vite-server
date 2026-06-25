@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 import { CodeInspectorPlugin } from "code-inspector-plugin";
+import { apiServerPlugin } from "@lightfish/server/plugin";
 
 function normalizeBase(raw: string | undefined): string {
   if (!raw || raw === "/") return "/";
@@ -11,10 +12,7 @@ function normalizeBase(raw: string | undefined): string {
 
 function defineAppConfig() {
   return {
-    SERVER_API: "http://localhost:3000",
-    resultUrl:
-      "https://winrobot-pub-a-cos.yingdao.com/static/report-upload/1778566396051-958fe8f5-d38a-447d-9ea2-9e21ba5f85e7.json",
-    DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY || "",
+    SERVER_API: "/api",
   };
 }
 
@@ -47,6 +45,7 @@ export default defineConfig({
       bundler: "vite",
       editor: "code",
     }),
+    apiServerPlugin(),
   ],
   resolve: {
     alias: {
@@ -54,11 +53,14 @@ export default defineConfig({
     },
   },
   server: {
-    headers: {
-      "Cross-Origin-Embedder-Policy": "require-corp",
-      "Cross-Origin-Opener-Policy": "same-origin",
-    },
     host: "0.0.0.0",
-    port: 8000,
+
+    proxy: {
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
   },
 });

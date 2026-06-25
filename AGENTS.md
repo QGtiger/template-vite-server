@@ -2,117 +2,202 @@
 
 ## 项目概览
 
-一个基于 **Vite + React 19 + TypeScript 6** 的现代化前端项目模板，集成以下核心能力：
-
 | 能力     | 方案                                            |
 | -------- | ----------------------------------------------- |
 | 构建工具 | Vite 8                                          |
 | UI 框架  | React 19                                        |
 | 类型系统 | TypeScript 6                                    |
 | 路由方案 | `@lightfish/router` — 文件系统路由              |
-| 状态管理 | `@lightfish/react-model` — 轻量级响应式状态管理 |
+| 状态管理 | `@lightfish/react-model` — 桥接 hook 到 Context |
 | 样式方案 | Tailwind CSS 4                                  |
 | 代码规范 | ESLint 10                                       |
 
 ---
 
-## Vibe Coding 约束
+## 1. 路由 & 页面结构（文件系统路由）
 
-### 1. 文件路由规则
+### 路由映射规则
 
-项目使用 `@lightfish/router` 实现**文件系统路由**，目录结构即路由结构。
+| 文件路径                      | 路由                           |
+| ----------------------------- | ------------------------------ |
+| `src/pages/index.tsx`         | `/`                            |
+| `src/pages/chat.tsx`          | `/chat`                        |
+| `src/pages/chat/index.tsx`    | `/chat`（目录 + index 等价）   |
+| `src/pages/chat/layout.tsx`   | `/chat` 及其子路由的**布局壳** |
+| `src/pages/chat/settings.tsx` | `/chat/settings`               |
+| `src/pages/blog/[id].tsx`     | `/blog/:id`                    |
 
-- `src/pages/index.tsx` → `/`
-- `src/pages/about.tsx` → `/about`
-- `src/pages/blog/[id].tsx` → `/blog/:id`
-- `src/pages/settings.tsx` → `/settings`
+### layout.tsx — 布局壳
 
-**约束：**
+`layout.tsx` 渲染**外围框架**（导航栏、侧边栏、Provider 包裹等），内部使用 `<Outlet />` 渲染子路由页面。
 
-- 页面组件放在 `src/pages/` 下，文件名即路由路径
-- 布局文件使用 `layout.tsx`，404 页面使用 `404.tsx`
-- 不要手动维护路由表，路由由文件系统自动生成
+```tsx
+// src/pages/chat/layout.tsx
+export default function ChatLayout() {
+  return (
+    <div className="flex h-screen">
+      <aside>侧边栏</aside>
+      <main className="flex-1">
+        <Outlet /> {/* ← 子路由在此渲染 */}
+      </main>
+    </div>
+  );
+}
+```
 
-### 2. 组件 & 逻辑内聚原则
+**layout.tsx 的职责边界：**
 
-**默认策略：就近内聚，延迟抽离。**
+- ✅ 渲染布局框架（flex、grid、导航等）
+- ✅ 包裹 `<Outlet />` 渲染子页面
+- ✅ 包裹 `<Provider>` 提供**该路由模块**的状态
+- ❌ 不能写页面内容（内容在 index.tsx 或子路由中）
+- ❌ 不能写请求逻辑或业务状态管理（在 model.ts 中）
 
-- 页面组件、请求逻辑、状态管理、UI 片段**默认写在一个文件里**
-- 只有当一段逻辑或 UI 在 **2 个及以上** 的地方被使用时，才考虑抽离为共享模块
-- 抽离方向：
-  - 共享组件 → `src/components/`
-  - 共享 hooks → `src/hooks/`
-  - 共享工具函数 → `src/utils/`
-  - 共享类型 → `src/types/`
+### layout + model + index 标准模式
 
-**为什么这样做：**
+```
+pages/chat/
+├── model.ts      ← ① 定义 hook + createCustomModel
+├── layout.tsx    ← ② <Provider><Outlet /></Provider>
+└── index.tsx     ← ③ 取状态 + 渲染 UI
+```
 
-- 避免过早抽象导致的认知负担
-- 页面级别的内聚让代码更容易理解和修改
-- 文件路由天然支持按页面拆分，每个页面文件就是一个独立的功能单元
+---
 
-### 3. 状态管理
+## 2. 状态管理（@lightfish/react-model）
 
-使用 `@lightfish/react-model` 进行状态管理。
+### 基本原理
 
-**组件级状态管理（推荐模式）：**
+`createCustomModel(useHook)` 把自定义 hook 桥接到 React Context：
 
-- 利用文件路由的 `layout.tsx` + 对应目录下的 `model.ts` 实现组件级别的状态隔离
-- 目录结构示例：
-  ```
-  src/pages/
-  ├── dashboard/
-  │   ├── layout.tsx    # 提供 Dashboard 级别的状态上下文
-  │   ├── model.ts      # Dashboard 模块的状态定义
-  │   ├── index.tsx     # /dashboard
-  │   └── settings.tsx  # /dashboard/settings
-  ├── index.tsx
-  ```
-- `layout.tsx` 通过 `@lightfish/react-model` 提供状态，其子路由页面共享该状态
-- 这种方式天然实现了"按路由模块拆分状态"，每个路由模块拥有独立的状态作用域
+```ts
+import { createCustomModel } from "@lightfish/react-model";
 
-**全局/跨页面状态：**
+function useMyHook(props: { count: number }) {
+  // 任意逻辑、useState、useEffect...
+  return { count, increment: () => {} };
+}
 
-- 当状态需要在多个不相关的路由模块间共享时，抽离到 `src/models/` 目录下
+export const { Provider, useModel } = createCustomModel(useMyHook);
+```
 
-### 4. Hooks 使用规范
+**Provider 的 value 会作为参数传给 hook：**
 
-在编写自定义 hooks 之前，**先检查 ahooks 是否已有现成的实现**。
+```tsx
+<Provider value={{ count: 0 }}>
+  <Child />
+</Provider>
+// → useMyHook({ count: 0 }) 在内部运行，返回值注入 Context
+```
 
-- 优先使用 `ahooks` 中经过验证的 hooks（如 `useRequest`、`useDebounce`、`useThrottle`、`useToggle` 等）
-- 只有当 ahooks 不满足需求时，才编写自定义 hooks
-- 自定义 hooks 放在 `src/hooks/` 目录下
+### 标准三层结构
 
-### 5. 样式规范
+```ts
+// model.ts — 定义状态 + hook
+import { createCustomModel } from "@lightfish/react-model";
 
-- 使用 Tailwind CSS 4 的 utility classes 作为主要样式方案
-- 对于复杂的自定义样式，使用 `@utility` 指令在 CSS 中定义
-- 遵循 Linear 设计系统的色彩和排版体系（详见设计系统文档）
+// 注意：hook 名用 useXxx，对应 useModel 会命名为 useXxxModel
+function useChat(initial: { id: string }) {
+  const [messages, setMessages] = useState<UIMessage[]>([]);
+  const [collapsed, setCollapsed] = useState(false);
 
-### 6. 代码组织
+  return {
+    messages,
+    collapsed,
+    setCollapsed,
+    send: (text: string) => {
+      /* ... */
+    },
+  };
+}
+
+export const { Provider: ChatProvider, useModel: useChatModel } =
+  createCustomModel(useChat);
+//                          ↑ 命名规则：XxxProvider                  ↑ 命名规则：useXxxModel
+```
+
+```tsx
+// layout.tsx — 注入状态
+import { ChatProvider } from "./model";
+
+export default function ChatLayout() {
+  return (
+    <ChatProvider value={{ id: "default" }}>
+      <Outlet />
+    </ChatProvider>
+  );
+}
+```
+
+```tsx
+// index.tsx — 消费状态
+import { useChatModel } from "./model";
+
+export default function ChatPage() {
+  const { messages, collapsed, send } = useChatModel();
+  // ...
+}
+```
+
+### 常见错误
+
+| ❌ 错误写法                                         | ✅ 正确写法                                                    |
+| --------------------------------------------------- | -------------------------------------------------------------- |
+| `layout.tsx` 里直接写页面 UI                        | `layout.tsx` 只写布局 + `<Outlet />`                           |
+| `layout.tsx` 里用 `useChatModel()`                  | `layout.tsx` 只包裹 `<Provider>`，子页面通过 `useModel()` 消费 |
+| `model.ts` 里导出 hook 但不调用 `createCustomModel` | 必须调用 `createCustomModel` 生成 Provider + useModel          |
+| 把 Provider 放在 `index.tsx` 里                     | Provider 放在 `layout.tsx` 里，确保**整个**路由模块共享        |
+
+---
+
+## 3. 组件 & 逻辑内聚原则
+
+**默认策略：就近内聚，延迟抽离。全部写在一个文件里，直到被复用才抽离。**
+
+- 页面组件、请求逻辑、UI 片段**先写在一个文件里**
+- 1 处使用 → 就地写
+- 2 处及以上 → 抽离到对应目录
+  - UI 组件 → `src/components/`
+  - hooks → `src/hooks/`
+  - 工具函数 → `src/utils/`
+  - 类型 → `src/types/`
+
+**例外：** 只有 `model.ts` 必须独立文件（因为 createCustomModel 要求单独导出 Provider）。
+
+---
+
+## 4. 样式规范
+
+- 使用 Tailwind CSS 4 utility classes
+- 复杂样式用 `@utility` 指令在 `src/main.css` 中定义
+- 不要用 `style={{}}` 内联 style（除非动态计算）
+
+---
+
+## 5. 代码组织
 
 ```
 src/
 ├── pages/              # 页面组件（文件路由）
-│   ├── index.tsx       # 首页
-│   ├── dashboard/
-│   │   ├── layout.tsx  # Dashboard 布局 + 状态提供
-│   │   ├── model.ts    # Dashboard 状态模型
-│   │   ├── index.tsx   # /dashboard
-│   │   └── settings.tsx # /dashboard/settings
-│   └── ...
-├── components/         # 共享组件（仅当复用时抽离）
-├── hooks/              # 共享 hooks（仅当复用时抽离）
-├── models/             # 全局状态模型
+│   ├── index.tsx       # /
+│   ├── chat/
+│   │   ├── model.ts    # useChatModel + createCustomModel → ChatProvider + useChatModel
+│   │   ├── layout.tsx  # <ChatProvider><Outlet /></ChatProvider>
+│   │   └── index.tsx   # /chat — 全部 UI
+├── components/         # 共享组件（仅复用时抽离）
+│   └── ai-elements/    # AI Elements CLI 生成的组件
+├── hooks/              # 共享 hooks（仅复用时抽离）
+├── models/             # 全局状态模型（跨路由共享）
 ├── utils/              # 工具函数
 ├── types/              # 共享类型定义
-├── main.css            # 全局样式
+├── main.css            # 全局样式（Tailwind + @utility）
 └── main.tsx            # 应用入口
 ```
 
-### 7. 开发原则
+---
 
-- **渐进式增强**：从简单实现开始，按需优化
-- **类型安全**：充分利用 TypeScript 的类型系统
-- **最小依赖**：优先使用项目已有依赖，新增依赖需评估必要性
-- **可读性优先**：代码清晰比"聪明"更重要
+## 7. 开发原则
+
+- **默认一个文件** — UI、逻辑、状态写在同一个页面文件里，不复用就不抽离
+- **类型安全** — 充分利用 TypeScript 6
+- **可读性优先** — 代码清晰比聪明重要

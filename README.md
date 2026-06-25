@@ -1,73 +1,113 @@
-# React + TypeScript + Vite
+# template-vite-server
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+基于 Vite 8 + React 19 + TypeScript 6 的前端项目模板。
 
-Currently, two official plugins are available:
+## 技术栈
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| 能力     | 方案                                            |
+| -------- | ----------------------------------------------- |
+| 构建工具 | Vite 8                                          |
+| UI 框架  | React 19                                        |
+| 类型系统 | TypeScript 6                                    |
+| 路由方案 | `@lightfish/router` — 文件系统路由              |
+| 状态管理 | `@lightfish/react-model` — 桥接 hook 到 Context |
+| 样式方案 | Tailwind CSS 4                                  |
+| 代码规范 | ESLint 10                                       |
 
-## React Compiler
+## 快速开始
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# 安装依赖
+pnpm install
 
-## Expanding the ESLint configuration
+# 启动开发服务器（默认 http://localhost:8000）
+pnpm dev
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# 构建生产版本
+pnpm build
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# 预览构建产物
+pnpm preview
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 代码检查
+pnpm lint
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 项目结构
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+src/
+├── pages/              # 页面组件（文件系统路由）
+│   ├── index.tsx       # /
+│   └── chat/           # /chat 路由模块
+│       ├── model.ts    # 状态模型（useXxxModel + Provider）
+│       ├── layout.tsx  # 布局壳（Provider + Outlet）
+│       └── index.tsx   # 页面 UI
+├── components/         # 共享组件（复用时抽离）
+├── hooks/              # 共享 hooks（复用时抽离）
+├── models/             # 全局状态模型（跨路由共享）
+├── utils/              # 工具函数
+├── types/              # 共享类型定义
+├── main.css            # 全局样式（Tailwind + @utility）
+└── main.tsx            # 应用入口
+```
+
+## 路由
+
+使用 `@lightfish/router` 实现文件系统路由，页面文件自动映射为路由：
+
+| 文件路径                      | 路由                       |
+| ----------------------------- | -------------------------- |
+| `src/pages/index.tsx`         | `/`                        |
+| `src/pages/chat.tsx`          | `/chat`                    |
+| `src/pages/chat/index.tsx`    | `/chat`                    |
+| `src/pages/chat/layout.tsx`   | `/chat` 及其子路由的布局壳 |
+| `src/pages/chat/settings.tsx` | `/chat/settings`           |
+| `src/pages/blog/[id].tsx`     | `/blog/:id`                |
+
+## 状态管理
+
+使用 `@lightfish/react-model` 将自定义 hook 桥接到 React Context：
+
+```tsx
+// model.ts
+import { createCustomModel } from "@lightfish/react-model";
+import { useState } from "react";
+
+function useChat(initial: { id: string }) {
+  const [messages, setMessages] = useState([]);
+  return { messages, send: (text: string) => {} };
+}
+
+export const { Provider: ChatProvider, useModel: useChatModel } =
+  createCustomModel(useChat);
+```
+
+```tsx
+// layout.tsx — 注入状态
+function ChatLayout() {
+  return (
+    <ChatProvider value={{ id: "default" }}>
+      <Outlet />
+    </ChatProvider>
+  );
+}
+
+// index.tsx — 消费状态
+function ChatPage() {
+  const { messages, send } = useChatModel();
+  // ...
+}
+```
+
+## 样式
+
+- 使用 Tailwind CSS 4 utility classes
+- 复杂样式用 `@utility` 指令在 `src/main.css` 中定义
+- 默认暗色主题，Inter Variable 字体
+
+## 开发原则
+
+- **默认一个文件** — UI、逻辑、状态写在同一个页面文件里，不复用就不抽离
+- **类型安全** — 充分利用 TypeScript 6
+- **可读性优先** — 代码清晰比聪明重要
