@@ -37,8 +37,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.4.0(jiti@2.7.0))
       '@lightfish/server':
-        specifier: ^0.0.21
-        version: 0.0.21(drizzle-orm@0.45.2(@types/pg@8.20.0)(pg@8.22.0))(pg@8.22.0)
+        specifier: ^0.0.22
+        version: 0.0.22(drizzle-orm@0.45.2(@types/pg@8.20.0)(pg@8.22.0))(pg@8.22.0)
       '@types/node':
         specifier: ^24.12.3
         version: 24.12.4
@@ -732,8 +732,8 @@ packages:
       react: '>=18'
       react-router-dom: 6.21.1
 
-  '@lightfish/server@0.0.21':
-    resolution: {integrity: sha512-wlP5//81VKhsNB/AcF+RpF3umM9DlRV4wehurFVdNL5aySfR44/ufas71KTNddbzHuCCHJqKs3bHxWsuy5H2OQ==}
+  '@lightfish/server@0.0.22':
+    resolution: {integrity: sha512-JPHka5yyVrLG92/HOmHlo9KIH6mIb86zjv+HyHCpHoFr9j4GRgOAVIqun44E1uEHCorJhZucF7dVea6gksKgTw==}
     hasBin: true
     peerDependencies:
       drizzle-orm: ^0.45.2
@@ -1506,8 +1506,8 @@ packages:
   hermes-parser@0.25.1:
     resolution: {integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==}
 
-  hono@4.12.27:
-    resolution: {integrity: sha512-1yrb/+w6HWQJrUCLkJ2IF5jNIPvvFkblV5RNOYl6bV+OA6p9GLcMpHFFGTosSvHvcAUibuUukRqhlYI4z32C7Q==}
+  hono@4.12.28:
+    resolution: {integrity: sha512-YwUvVpSF7m1yOblFPrU3Hbo8XhPheBoiyfGuII6z19LnOr6JpDnyyp7LFNrfV56wS8tpvtBFGRISHN02pDdLOA==}
     engines: {node: '>=16.9.0'}
 
   https-proxy-agent@5.0.1:
@@ -2452,9 +2452,9 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@hono/node-server@1.19.14(hono@4.12.27)':
+  '@hono/node-server@1.19.14(hono@4.12.28)':
     dependencies:
-      hono: 4.12.27
+      hono: 4.12.28
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -2500,9 +2500,9 @@ snapshots:
       react: 19.2.6
       react-router-dom: 6.21.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
 
-  '@lightfish/server@0.0.21(drizzle-orm@0.45.2(@types/pg@8.20.0)(pg@8.22.0))(pg@8.22.0)':
+  '@lightfish/server@0.0.22(drizzle-orm@0.45.2(@types/pg@8.20.0)(pg@8.22.0))(pg@8.22.0)':
     dependencies:
-      '@hono/node-server': 1.19.14(hono@4.12.27)
+      '@hono/node-server': 1.19.14(hono@4.12.28)
       '@types/pg': 8.20.0
       axios: 1.18.1
       chokidar: 4.0.3
@@ -2511,7 +2511,7 @@ snapshots:
       drizzle-kit: 0.31.10
       drizzle-orm: 0.45.2(@types/pg@8.20.0)(pg@8.22.0)
       esbuild: 0.25.12
-      hono: 4.12.27
+      hono: 4.12.28
       pg: 8.22.0
       prompts: 2.4.2
       tsx: 3.14.0
@@ -3236,7 +3236,7 @@ snapshots:
     dependencies:
       hermes-estree: 0.25.1
 
-  hono@4.12.27: {}
+  hono@4.12.28: {}
 
   https-proxy-agent@5.0.1:
     dependencies:
