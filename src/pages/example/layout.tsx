@@ -1,5 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { ExampleProvider } from "./model";
+import { useRequest } from "ahooks";
+import { apiRequest } from "@lightfish/server/api";
 
 /**
  * 示例布局
@@ -8,6 +10,9 @@ import { ExampleProvider } from "./model";
  * 新建项目时可直接删除 `src/pages/example/` 目录。
  */
 export default function ExampleLayout() {
+  useRequest(() => {
+    return apiRequest("/hello");
+  });
   return (
     <ExampleProvider>
       <div className="min-h-screen flex flex-col">
