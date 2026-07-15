@@ -53,5 +53,9 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     allowedHosts: true,
+    // 开发服务响应头配置
+    headers: {
+      "Content-Security-Policy": "frame-ancestors *;",
+    },
   },
 });
